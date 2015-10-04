@@ -1,3 +1,7 @@
+Inspiration:
+============
+http://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-now-with-python-3-support
+
 Installation: 
 =============
 
@@ -8,7 +12,7 @@ use the command:
 
 To create a virtual environment for this script, use the command:
 
-    virtualenv venv
+    virtualenv.py venv
 
 To activate that virtual environment, use the command:
 
@@ -17,12 +21,14 @@ To activate that virtual environment, use the command:
 To install Flask from in the virtual environment, use the command:
 
     pip install Flask
+    pip install Flask-SQLAlchemy
+    ...
 
 To initialize the database, open an interactive python prompt (type 'python' in 
 your virtualenv shell and hit enter) and run the following commands:
 
-    from tcsblog import init_db
-    init_db()
+    from ablog import db
+    db.create_all()
 
 Exiting Virtualenv: 
 ===================
@@ -31,4 +37,14 @@ To exit that virtual environment, use the command:
 
     deactivate
 
+
+Useful Docs
+===========
+http://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-x-full-text-search
+http://markdownlivepreview.com
+https://pythonhosted.org/Flask-WhooshAlchemy/
+http://getbootstrap.com
+http://momentjs.com
+https://github.com/scrooloose/nerdtree
+https://github.com/nathanaelkane/vim-indent-guides
 
