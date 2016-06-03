@@ -1,42 +1,31 @@
-# -*- coding: utf-8 -*-
-# ...
-# available languages
-LANGUAGES = {
-    'en': 'English',
-    'es': 'Español'
-}
-
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 
-SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'app.db')
-SQLALCHEMY_MIGRATE_REPO = os.path.join(basedir, 'db_repository')
+CSRF_ENABLED = True
+SECRET_KEY = 'you-will-never-guess'
 
-WTF_CSRF_ENABLED = True
-SECRET_KEY = 'you-will-never-guess-this-for-sure'
-
-# authentication
 OPENID_PROVIDERS = [
+    {'name': 'Google', 'url': 'https://www.google.com/accounts/o8/id'},
     {'name': 'Yahoo', 'url': 'https://me.yahoo.com'},
     {'name': 'AOL', 'url': 'http://openid.aol.com/<username>'},
     {'name': 'Flickr', 'url': 'http://www.flickr.com/<username>'},
     {'name': 'MyOpenID', 'url': 'https://www.myopenid.com'}]
 
-# mail server settings
+SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'app.db')
+SQLALCHEMY_MIGRATE_REPO = os.path.join(basedir, 'db_repository')
+WHOOSH_BASE = os.path.join(basedir, 'search.db')
+
+# email server
+MAIL_SERVER = 'your.mailserver.com'
+MAIL_PORT = 25
 MAIL_USE_TLS = False
-MAIL_USE_SSL = True
-MAIL_SERVER = os.environ.get('MAIL_SERVER')
-MAIL_PORT = os.environ.get('MAIL_PORT')
+MAIL_USE_SSL = False
 MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
 MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
 
 # administrator list
-ADMINS = [ os.environ.get('MAIL_ADDRESS') ]
+ADMINS = ['you@example.com']
 
 # pagination
 POSTS_PER_PAGE = 3
-
-# search
-WHOOSH_BASE = os.path.join(basedir, 'search.db')
 MAX_SEARCH_RESULTS = 50
-

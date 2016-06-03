@@ -1,7 +1,10 @@
 from hashlib import md5
-import re
-from app import app, db
-
+from app import db
+from app import app
+from flask import Markup
+from markdown import markdown
+from markdown.extensions.codehilite import CodeHiliteExtension
+from markdown.extensions.extra import ExtraExtension
 
 import sys
 if sys.version_info >= (3, 0):
@@ -11,9 +14,11 @@ else:
     import flask.ext.whooshalchemy as whooshalchemy
 
 
-followers = db.Table('followers',
+followers = db.Table(
+    'followers',
     db.Column('follower_id', db.Integer, db.ForeignKey('user.id')),
-    db.Column('followed_id', db.Integer, db.ForeignKey('user.id')) )
+    db.Column('followed_id', db.Integer, db.ForeignKey('user.id'))
+)
 
 
 class User(db.Model):
@@ -23,11 +28,24 @@ class User(db.Model):
     posts = db.relationship('Post', backref='author', lazy='dynamic')
     about_me = db.Column(db.String(140))
     last_seen = db.Column(db.DateTime)
-    followed = db.relationship('User', secondary=followers, 
-      primaryjoin=(followers.c.follower_id == id), 
-      secondaryjoin=(followers.c.followed_id == id), 
-      backref=db.backref('followers', lazy='dynamic'), 
-      lazy='dynamic')
+    followed = db.relationship('User',
+                               secondary=followers,
+                               primaryjoin=(followers.c.follower_id == id),
+                               secondaryjoin=(followers.c.followed_id == id),
+                               backref=db.backref('followers', lazy='dynamic'),
+                               lazy='dynamic')
+
+    @staticmethod
+    def make_unique_nickname(nickname):
+        if User.query.filter_by(nickname=nickname).first() is None:
+            return nickname
+        version = 2
+        while True:
+            new_nickname = nickname + str(version)
+            if User.query.filter_by(nickname=new_nickname).first() is None:
+                break
+            version += 1
+        return new_nickname
 
     @property
     def is_authenticated(self):
@@ -48,24 +66,8 @@ class User(db.Model):
             return str(self.id)  # python 3
 
     def avatar(self, size):
-        return 'http://www.gravatar.com/avatar/%s?d=mm&s=%d' % (
-          md5(self.email.encode('utf-8')).hexdigest(), size)
-
-    @staticmethod
-    def make_valid_nickname(nickname):
-        return re.sub('[^a-zA-Z0-9_\.]', '', nickname)
-
-    @staticmethod
-    def make_unique_nickname(nickname):
-        if User.query.filter_by(nickname=nickname).first() is None:
-            return nickname
-        version = 2
-        while True:
-            new_nickname = nickname + str(version)
-            if User.query.filter_by(nickname=new_nickname).first() is None:
-                break
-            version += 1
-        return new_nickname
+        return 'http://www.gravatar.com/avatar/%s?d=mm&s=%d' % \
+            (md5(self.email.encode('utf-8')).hexdigest(), size)
 
     def follow(self, user):
         if not self.is_following(user):
@@ -78,12 +80,14 @@ class User(db.Model):
             return self
 
     def is_following(self, user):
-        return self.followed.filter(followers.c.followed_id == user.id).count() > 0
+        return self.followed.filter(
+            followers.c.followed_id == user.id).count() > 0
 
     def followed_posts(self):
-        return Post.query.join(followers, (followers.c.followed_id == Post.user_id)
-          ).filter(followers.c.follower_id == self.id
-          ).order_by(Post.timestamp.desc())
+        return Post.query.join(
+            followers, (followers.c.followed_id == Post.user_id)).filter(
+                followers.c.follower_id == self.id).order_by(
+                    Post.timestamp.desc())
 
     def __repr__(self):
         return '<User %r>' % (self.nickname)
@@ -92,16 +96,27 @@ class User(db.Model):
 class Post(db.Model):
     __searchable__ = ['body']
 
-    id = db.Column(db.Integer, primary_key = True)
-    body = db.Column(db.String(140))
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.String(10000))
     timestamp = db.Column(db.DateTime)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
+    @property
+    def html_content(self):
+        hilite = CodeHiliteExtension(linenums=False, css_class='highlight')
+        extras = ExtraExtension()
+        markdown_content = markdown(self.body, extensions=[hilite, extras])
+        #oembed_content = parse_html(
+        #    markdown_content,
+        #    oembed_providers,
+        #    urlize_all=True,
+        #    maxwidth=app.config['SITE_WIDTH'])
+        #return Markup(oembed_content)
+        return Markup(markdown_content)
+    
     def __repr__(self):
         return '<Post %r>' % (self.body)
 
 
 if enable_search:
     whooshalchemy.whoosh_index(app, Post)
-
-

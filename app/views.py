@@ -1,17 +1,12 @@
-from datetime import datetime
 from flask import render_template, flash, redirect, session, url_for, request, g
-from flask.ext.login import login_user, logout_user, current_user, login_required
-from flask.ext.babel import gettext
-from app import app, db, lm, oid, babel
+from flask.ext.login import login_user, logout_user, current_user, \
+    login_required
+from datetime import datetime
+from app import app, db, lm, oid
 from .forms import LoginForm, EditForm, PostForm, SearchForm
 from .models import User, Post
-from config import POSTS_PER_PAGE, MAX_SEARCH_RESULTS, LANGUAGES
 from .emails import follower_notification
-
-@babel.localeselector
-def get_locale():
-    return 'es'
-    return request.accept_languages.best_match(LANGUAGES.keys())
+from config import POSTS_PER_PAGE, MAX_SEARCH_RESULTS
 
 
 @lm.user_loader
@@ -27,7 +22,6 @@ def before_request():
         db.session.add(g.user)
         db.session.commit()
         g.search_form = SearchForm()
-    g.locale = get_locale()
 
 
 @app.errorhandler(404)
@@ -48,10 +42,11 @@ def internal_error(error):
 def index(page=1):
     form = PostForm()
     if form.validate_on_submit():
-        post = Post(body=form.post.data, timestamp=datetime.utcnow(), author=g.user)
+        post = Post(body=form.post.data, timestamp=datetime.utcnow(),
+                    author=g.user)
         db.session.add(post)
         db.session.commit()
-        flash(gettext('Your post is now live!'))
+        flash('Your post is now live!')
         return redirect(url_for('index'))
     posts = g.user.followed_posts().paginate(page, POSTS_PER_PAGE, False)
     return render_template('index.html',
@@ -69,25 +64,22 @@ def login():
     if form.validate_on_submit():
         session['remember_me'] = form.remember_me.data
         return oid.try_login(form.openid.data, ask_for=['nickname', 'email'])
-    return render_template('login.html', 
-      title='Sign In',
-      form=form,
-      providers=app.config['OPENID_PROVIDERS'])
+    return render_template('login.html',
+                           title='Sign In',
+                           form=form,
+                           providers=app.config['OPENID_PROVIDERS'])
 
 
 @oid.after_login
 def after_login(resp):
-    ''' This is called when a user successfully logs in to the system and we 
-    need to create a new User instance. '''
     if resp.email is None or resp.email == "":
-        flash(gettext('Invalid login. Please try again.'))
+        flash('Invalid login. Please try again.')
         return redirect(url_for('login'))
     user = User.query.filter_by(email=resp.email).first()
     if user is None:
         nickname = resp.nickname
         if nickname is None or nickname == "":
             nickname = resp.email.split('@')[0]
-        nickname = User.make_valid_nickname(nickname)
         nickname = User.make_unique_nickname(nickname)
         user = User(nickname=nickname, email=resp.email)
         db.session.add(user)
@@ -114,11 +106,13 @@ def logout():
 @login_required
 def user(nickname, page=1):
     user = User.query.filter_by(nickname=nickname).first()
-    if user == None:
-        flash(gettext('User %(nickname)s not found.', nickname=nickname))
+    if user is None:
+        flash('User %s not found.' % nickname)
         return redirect(url_for('index'))
     posts = user.posts.paginate(page, POSTS_PER_PAGE, False)
-    return render_template('user.html', user=user, posts=posts)
+    return render_template('user.html',
+                           user=user,
+                           posts=posts)
 
 
 @app.route('/edit', methods=['GET', 'POST'])
@@ -130,9 +124,9 @@ def edit():
         g.user.about_me = form.about_me.data
         db.session.add(g.user)
         db.session.commit()
-        flash(gettext('Your changes have been saved.'))
+        flash('Your changes have been saved.')
         return redirect(url_for('edit'))
-    else:
+    elif request.method != "POST":
         form.nickname.data = g.user.nickname
         form.about_me.data = g.user.about_me
     return render_template('edit.html', form=form)
@@ -143,18 +137,18 @@ def edit():
 def follow(nickname):
     user = User.query.filter_by(nickname=nickname).first()
     if user is None:
-        flash(gettext('User %(nickname)s not found.', nickname=nickname))
+        flash('User %s not found.' % nickname)
         return redirect(url_for('index'))
     if user == g.user:
-        flash(gettext('You can\'t follow yourself!'))
+        flash('You can\'t follow yourself!')
         return redirect(url_for('user', nickname=nickname))
     u = g.user.follow(user)
     if u is None:
-        flash(gettext('Cannot follow %(nickname)s.', nickname=nickname))
+        flash('Cannot follow ' + nickname + '.')
         return redirect(url_for('user', nickname=nickname))
     db.session.add(u)
     db.session.commit()
-    flash(gettext('You are now following %(nickname)s!', nickname=nickname))
+    flash('You are now following ' + nickname + '!')
     follower_notification(user, g.user)
     return redirect(url_for('user', nickname=nickname))
 
@@ -164,18 +158,18 @@ def follow(nickname):
 def unfollow(nickname):
     user = User.query.filter_by(nickname=nickname).first()
     if user is None:
-        flash(gettext('User %(nickname)s not found.', nickname=nickname))
+        flash('User %s not found.' % nickname)
         return redirect(url_for('index'))
     if user == g.user:
-        flash(gettext('You can\'t unfollow yourself!'))
+        flash('You can\'t unfollow yourself!')
         return redirect(url_for('user', nickname=nickname))
     u = g.user.unfollow(user)
     if u is None:
-        flash(gettext('Cannot unfollow %(nickname)s.', nickname=nickname))
+        flash('Cannot unfollow ' + nickname + '.')
         return redirect(url_for('user', nickname=nickname))
     db.session.add(u)
     db.session.commit()
-    flash(gettext('You have stopped following %(nickname)s.', nickname=nickname))
+    flash('You have stopped following ' + nickname + '.')
     return redirect(url_for('user', nickname=nickname))
 
 
@@ -195,21 +189,18 @@ def search_results(query):
                            query=query,
                            results=results)
 
-
 @app.route('/delete/<int:id>')
 @login_required
 def delete(id):
     post = Post.query.get(id)
     if post is None:
-        flash(gettext('Post not found.'))
+        flash('Post not found.')
         return redirect(url_for('index'))
     if post.author.id != g.user.id:
-        flash(gettext('You cannot delete this post.'))
+        flash('You cannot delete this post.')
         return redirect(url_for('index'))
     db.session.delete(post)
     db.session.commit()
-    flash(gettext('Your post has been deleted.'))
+    flash('Your post has been deleted.')
     return redirect(url_for('index'))
-
-
 

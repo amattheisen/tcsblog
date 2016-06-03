@@ -1,8 +1,9 @@
 from flask import render_template
 from flask.ext.mail import Message
+from app import mail
+from .decorators import async
 from config import ADMINS
 from app import app
-from .decorators import async
 
 
 @async
@@ -19,10 +20,10 @@ def send_email(subject, sender, recipients, text_body, html_body):
 
 
 def follower_notification(followed, follower):
-    send_email("[ablog] %s is now following you!" % follower.nickname,
+    send_email("[microblog] %s is now following you!" % follower.nickname,
                ADMINS[0],
                [followed.email],
-               render_template("follower_email.txt", 
+               render_template("follower_email.txt",
                                user=followed, follower=follower),
-               render_template("follower_email.html", 
+               render_template("follower_email.html",
                                user=followed, follower=follower))

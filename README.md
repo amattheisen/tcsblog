@@ -22,13 +22,21 @@ To install Flask from in the virtual environment, use the command:
 
     pip install Flask
     pip install Flask-SQLAlchemy
+    pip install flask-login
+    pip install flask-openid
+    pip install flask-mail
+    pip install flask-wtf
+    pip install flask-whooshalchemy
+    pip install markdown
+    pip install pygments
     ...
 
 To initialize the database, open an interactive python prompt (type 'python' in 
 your virtualenv shell and hit enter) and run the following commands:
 
-    from ablog import db
-    db.create_all()
+    python
+    >>> from app import db
+    >>> db.create_all()
 
 Exiting Virtualenv: 
 ===================
@@ -47,4 +55,4 @@ http://getbootstrap.com
 http://momentjs.com
 https://github.com/scrooloose/nerdtree
 https://github.com/nathanaelkane/vim-indent-guides
-
+http://charlesleifer.com/blog/how-to-make-a-flask-blog-in-one-hour-or-less/
